@@ -1,0 +1,60 @@
+{
+  "module": "ietf-interfaces",
+  "root": "interfaces",
+  "data": {
+    "interface": [
+      {
+        "name": "<name>",
+        "description": "",
+        "type": "",
+        "enabled": "",
+        "link-up-down-trap-enable": "",
+        "ipv4": {
+          "enabled": "",
+          "forwarding": "",
+          "mtu": "",
+          "address": [
+            {
+              "ip": "<ip>",
+              "prefix-length": "",
+              "netmask": ""
+            }
+          ],
+          "neighbor": [
+            {
+              "ip": "<ip>",
+              "link-layer-address": ""
+            }
+          ],
+          "bind-ni-name": ""
+        },
+        "ipv6": {
+          "enabled": "",
+          "forwarding": "",
+          "mtu": "",
+          "address": [
+            {
+              "ip": "<ip>",
+              "prefix-length": ""
+            }
+          ],
+          "neighbor": [
+            {
+              "ip": "<ip>",
+              "link-layer-address": ""
+            }
+          ],
+          "dup-addr-detect-transmits": "",
+          "autoconf": {
+            "create-global-addresses": "",
+            "create-temporary-addresses": "",
+            "temporary-valid-lifetime": "",
+            "temporary-preferred-lifetime": ""
+          },
+          "bind-ni-name": ""
+        },
+        "bind-ni-name": ""
+      }
+    ]
+  }
+}

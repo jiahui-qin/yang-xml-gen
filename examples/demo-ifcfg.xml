@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<nc:rpc xmlns:nc="urn:ietf:params:netconf:base:1.0" message-id="101">
+  <nc:edit-config nc:operation="merge">
+    <nc:target>
+      <nc:running />
+    </nc:target>
+    <nc:config>
+      <interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces" nc:operation="merge">
+        <interface>
+          <name>eth0</name>
+          <description>uplink to core</description>
+          <type xmlns:ianaift="urn:ietf:params:xml:ns:yang:iana-if-type">ianaift:ethernetCsmacd</type>
+          <enabled>true</enabled>
+          <ipv4 xmlns="urn:ietf:params:xml:ns:yang:ietf-ip">
+            <enabled>true</enabled>
+            <forwarding>false</forwarding>
+            <mtu>1500</mtu>
+            <address>
+              <ip>10.0.0.1</ip>
+              <prefix-length>24</prefix-length>
+            </address>
+          </ipv4>
+        </interface>
+        <interface>
+          <name>eth1</name>
+          <description>loopback</description>
+          <type xmlns:ianaift="urn:ietf:params:xml:ns:yang:iana-if-type">ianaift:ethernetCsmacd</type>
+          <enabled>true</enabled>
+        </interface>
+      </interfaces>
+    </nc:config>
+  </nc:edit-config>
+</nc:rpc>

@@ -1,0 +1,9 @@
+{
+  "module": "openconfig-system",
+  "root": "system",
+  "wrap": "get",
+  "message-id": 302,
+  "filter": {
+    "aaa": {}
+  }
+}

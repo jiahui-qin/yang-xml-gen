@@ -1,0 +1,10 @@
+{
+  "module": "openconfig-system",
+  "root": "system",
+  "wrap": "get-config",
+  "target": "running",
+  "message-id": 301,
+  "filter": {
+    "aaa": {}
+  }
+}

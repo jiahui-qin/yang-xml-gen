@@ -1,0 +1,14 @@
+# Create one interface and update another in a single edit-config.
+module: ietf-interfaces
+root: interfaces
+operation: merge
+wrap: edit-config
+data:
+  interface:
+    - name: eth0
+      type: ethernetCsmacd
+      description: uplink to core
+      enabled: true
+    - name: eth1
+      type: ethernetCsmacd
+      enabled: true

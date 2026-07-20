@@ -1,0 +1,6 @@
+{
+  "wrap": "get-config",
+  "target": "running",
+  "message-id": 203,
+  "filter-select": "/if:interfaces/if:interface[if:name=\"eth0\"]"
+}

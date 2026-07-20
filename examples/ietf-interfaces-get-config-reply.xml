@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A realistic <get-config> reply carrying an ietf-interfaces data tree.
+  Used to demo the reverse parser (step 6): `cli reply.xml` with the
+  reverse flag. The payload mirrors what a device would return for a
+  subtree filter selecting two interfaces: eth0 with an ipv4 sub-tree,
+  eth1 minimal.
+-->
+<nc:rpc-reply xmlns:nc="urn:ietf:params:netconf:base:1.0" message-id="301">
+  <nc:data>
+    <interfaces xmlns="urn:ietf:params:xml:ns:yang:ietf-interfaces">
+      <interface>
+        <name>eth0</name>
+        <description>primary uplink</description>
+        <type xmlns:ianaift="urn:ietf:params:xml:ns:yang:iana-if-type">ianaift:ethernetCsmacd</type>
+        <enabled>true</enabled>
+        <link-up-down-trap-enable>enabled</link-up-down-trap-enable>
+        <ipv4 xmlns="urn:ietf:params:xml:ns:yang:ietf-ip">
+          <enabled>true</enabled>
+          <forwarding>false</forwarding>
+          <mtu>1500</mtu>
+          <address>
+            <ip>10.0.0.1</ip>
+            <netmask>255.255.255.0</netmask>
+            <origin>static</origin>
+          </address>
+        </ipv4>
+      </interface>
+      <interface>
+        <name>eth1</name>
+        <type xmlns:ianaift="urn:ietf:params:xml:ns:yang:iana-if-type">ianaift:ethernetCsmacd</type>
+        <enabled>true</enabled>
+      </interface>
+    </interfaces>
+  </nc:data>
+</nc:rpc-reply>

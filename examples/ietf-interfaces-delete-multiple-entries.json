@@ -1,0 +1,14 @@
+{
+  "module": "ietf-interfaces",
+  "root": "interfaces",
+  "wrap": "edit-config",
+  "target": "running",
+  "message-id": 304,
+  "data": {
+    "interface": [
+      { "name": "eth0", "_operation": "delete" },
+      { "name": "eth1", "_operation": "delete" },
+      { "name": "eth2", "_operation": "delete" }
+    ]
+  }
+}

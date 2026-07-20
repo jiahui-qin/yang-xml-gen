@@ -1,0 +1,16 @@
+{
+  "module": "ietf-interfaces",
+  "root": "interfaces",
+  "wrap": "edit-config",
+  "target": "running",
+  "message-id": 303,
+  "data": {
+    "interface": [
+      {
+        "name": "eth0",
+        "type": "ethernetCsmacd",
+        "ipv4": { "_operation": "delete" }
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "module": "ietf-interfaces",
+  "root": "interfaces",
+  "operation": "merge",
+  "wrap": "edit-config",
+  "data": {
+    "interface": [
+      {
+        "name": "eth0",
+        "description": "uplink to core",
+        "type": "ethernetCsmacd",
+        "enabled": true,
+        "ipv4": {
+          "enabled": true,
+          "address": [
+            {
+              "ip": "10.0.0.1",
+              "netmask": "255.255.255.0"
+            }
+          ]
+        }
+      },
+      {
+        "name": "eth1",
+        "type": "ethernetCsmacd",
+        "enabled": true
+      }
+    ]
+  }
+}

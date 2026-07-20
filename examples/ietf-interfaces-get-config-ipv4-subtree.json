@@ -1,0 +1,12 @@
+{
+  "module": "ietf-interfaces",
+  "root": "interfaces",
+  "wrap": "get-config",
+  "target": "running",
+  "message-id": 202,
+  "filter": {
+    "interface": [
+      { "name": "eth0", "ipv4": {} }
+    ]
+  }
+}

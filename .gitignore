@@ -1,0 +1,57 @@
+# --- YANG 模型（按项目要求不纳入版本控制）---
+# models/ 含 123 个 IETF/OpenConfig/sysrepo 的 .yang 模型，体积较大且为
+# 上游项目产物。克隆后请按 models/README.md 的说明自行获取并放入本目录。
+# 如需把模型纳入仓库，删除下面一行即可。
+#
+# 注意：不能直接写 `models/`（会忽略整个目录，连 models/README.md 一起排除，
+# 且 `!models/README.md` 无法重新包含——git 不进入被忽略的目录）。所以这里
+# 只忽略目录下的 .yang 文件，保留 README.md 和其他非模型文件。
+models/*.yang
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# --- 测试 / 覆盖率 ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# --- 虚拟环境 ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- 编辑器 / IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- 工具本地产物 ---
+# .zcode/ 是 ZCode agent 的本地会话/计划缓存，不应上传
+.zcode/
+
+# --- 临时生成的输出 ---
+# 运行 CLI 时本地生成的 XML/JSON 输出（如 get-aaa.xml）不纳入版本控制
+get-aaa.xml
+*.local.xml
+*.local.json

@@ -1,0 +1,12 @@
+{
+  "module": "ietf-netconf",
+  "root": "get-config",
+  "wrap": "rpc",
+  "message-id": 42,
+  "data": {
+    "source": {
+      "running": true
+    },
+    "with-defaults": "report-all"
+  }
+}

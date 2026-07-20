@@ -1,0 +1,13 @@
+{
+  "module": "ietf-interfaces",
+  "root": "interfaces",
+  "wrap": "get-config",
+  "target": "running",
+  "message-id": 205,
+  "filter": {
+    "interface": [
+      { "name": "eth0" }
+    ]
+  },
+  "with-defaults": "report-all"
+}
