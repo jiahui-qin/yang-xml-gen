@@ -1,0 +1,10 @@
+# Configure the toaster: dark setting, wheat bread, defrost mode, with a label.
+module: example-toaster
+root: toaster
+operation: merge
+wrap: edit-config
+data:
+  darkness: 7
+  toast-type: wheat-bread
+  mode: defrost
+  label: Kitchen counter

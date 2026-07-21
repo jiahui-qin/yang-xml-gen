@@ -13,6 +13,14 @@
 | OpenConfig 模块 | 74 | `openconfig-interfaces`、`openconfig-system`、`openconfig-aaa` |
 | sysrepo / libnetconf / 通用 | 8 | `sysrepo`、`libnetconf2-netconf-server`、`notifications`、`yang` |
 
+### 例外：`example-toaster@2026-07-17.yang`
+
+`example-toaster@2026-07-17.yang` 是一个**例外**——它不是上游模型，而是为本项目
+README 编写的示例模块（扩展自经典的 netconfcentral toaster），用于演示 string /
+uint8 / enumeration / identityref 等叶类型在配置生成中的处理。它**纳入版本控制**
+（仓库根 `.gitignore` 的 `models/*.yang` 规则对它用 `git add -f` 强制跟踪），其余
+上游模型仍按上文「不纳入版本控制」处理。
+
 ## 获取方式
 
 模型文件名带 `@<revision-date>.yang` 后缀，可从以下官方来源获取：

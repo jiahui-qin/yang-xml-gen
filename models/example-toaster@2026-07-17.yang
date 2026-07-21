@@ -1,0 +1,158 @@
+module example-toaster {
+  yang-version 1.1;
+  namespace "urn:example:toaster";
+  prefix toaster;
+
+  organization
+    "yang-xml-gen project";
+  contact
+    "https://github.com/qinjh/yang-xml-gen";
+  description
+    "An example YANG module for a toaster appliance.
+
+     This module is a documentation artifact for the yang-xml-gen project.
+     It extends the classic netconfcentral 'toaster' example
+     (http://netconfcentral.org/ns/toaster, Andy Bierman, 2009-11-20)
+     with a richer config-true container so the README demo exercises
+     string / uint8 / enumeration / identityref leaf types in the
+     <running> datastore -- the stock toaster only exposes a single
+     uint32 config leaf.
+
+     Self-contained: no imports, no external dependencies.
+
+     Copyright (c) 2026 qinjh. Licensed under MIT.";
+
+  revision 2026-07-17 {
+    description
+      "Initial revision of the extended example-toaster.";
+  }
+
+  /*
+   * Identities
+   */
+
+  identity toast-type {
+    description
+      "Base identity for the type of bread/toast product being toasted.";
+  }
+
+  identity white-bread {
+    base toast-type;
+    description "Standard white bread.";
+  }
+
+  identity wheat-bread {
+    base toast-type;
+    description "Whole-wheat bread.";
+  }
+
+  identity frozen-waffle {
+    base toast-type;
+    description "Frozen waffle.";
+  }
+
+  identity frozen-bagel {
+    base toast-type;
+    description "Frozen bagel.";
+  }
+
+  identity hash-brown {
+    base toast-type;
+    description "Hash brown patty.";
+  }
+
+  identity cold-pizza {
+    base toast-type;
+    description "Leftover cold pizza.";
+  }
+
+  /*
+   * Configuration data
+   */
+
+  container toaster {
+    description
+      "Configuration and operational state of a toaster.
+
+       All writable leaves live under this container so the config
+       demo (edit-config) exercises every leaf type the generator
+       handles: uint8+range (darkness), identityref (toast-type),
+       enumeration (mode), string+length (label).";
+
+    leaf darkness {
+      type uint8 {
+        range "1..10";
+      }
+      default "5";
+      description
+        "The darkness setting. 1 = lightest, 10 = darkest.";
+    }
+
+    leaf toast-type {
+      type identityref {
+        base toast-type;
+      }
+      default "wheat-bread";
+      description
+        "The type of product being toasted. The value carries the
+         prefix of the module that defines the identity (e.g.
+         'toaster:white-bread' for identities in this module).";
+    }
+
+    leaf mode {
+      type enumeration {
+        enum regular {
+          description "Normal toasting cycle.";
+        }
+        enum defrost {
+          description "Defrost then toast (for frozen items).";
+        }
+        enum reheat {
+          description "Brief reheat without browning.";
+        }
+      }
+      default "regular";
+      description "The toasting cycle to use.";
+    }
+
+    leaf label {
+      type string {
+        length "1..32";
+      }
+      description
+        "A human-readable label for this toaster, shown on the front
+         panel. Must be between 1 and 32 characters.";
+    }
+  }
+
+  /*
+   * Remote procedure calls
+   */
+
+  rpc make-toast {
+    description
+      "Issue a make-toast request to the device. Input parameters go
+       directly under <make-toast> (no <input> wrapper), per RFC 6241.";
+    input {
+      leaf toastDoneness {
+        type uint8 {
+          range "1..10";
+        }
+        default "5";
+        description "How dark to make the toast (1..10).";
+      }
+      leaf toastType {
+        type identityref {
+          base toast-type;
+        }
+        default "wheat-bread";
+        description "The type of product to toast.";
+      }
+    }
+  }
+
+  rpc cancel-toast {
+    description
+      "Cancel any in-progress toast cycle. No input parameters.";
+  }
+}

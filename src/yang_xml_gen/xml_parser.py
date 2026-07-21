@@ -28,6 +28,7 @@ from xml.etree import ElementTree as ET
 
 from .loader import Loader
 from .schema import SchemaNode, build_schema
+from .validator import emit_warnings
 from .xml_builder import NC_NS, OPERATION_KEY, VALID_OPERATIONS
 
 # Namespaced key for the nc:operation attribute on a parsed element.
@@ -84,6 +85,55 @@ def parse_reply(xml: str, loader: Loader, *, data_only: bool = False) -> Any:
         f"unsupported <rpc-reply> child <{first_local}>; "
         f"expected <data>, <ok>, or <rpc-error>"
     )
+
+
+def parse_fragment(
+    xml: str,
+    loader: Loader,
+    *,
+    module: str | None = None,
+    root: str | None = None,
+    data_only: bool = True,
+) -> Any:
+    """Parse a bare data-tree fragment (no ``<rpc-reply>`` envelope) into JSON.
+
+    Unlike :func:`parse_reply`, the input is a single root element such as
+    ``<interfaces>...</interfaces>`` -- the kind of fragment you get from a
+    subtree-filter reply once the ``<rpc-reply><data>`` wrapper is stripped,
+    or from an ``<edit-config>``'s ``<config>`` payload. There is no
+    ``<ok/>`` / ``<rpc-error>`` form here; if the input *is* an
+    ``<rpc-reply>``, :class:`ParseError` is raised (use :func:`parse_reply`
+    for that).
+
+    ``module`` and ``root`` may be given explicitly; if omitted they are
+    inferred from the root element's xmlns (namespace -> module) and local
+    name, exactly as :func:`parse_reply` does for a single-root data reply.
+
+    Returns the parsed ``data`` object by default (``data_only=True``), or
+    the ``{"module": ..., "root": ..., "data": ...}`` envelope when
+    ``data_only=False``.
+    """
+    try:
+        root_elem = ET.fromstring(xml)
+    except ET.ParseError as e:
+        raise ParseError(f"not well-formed XML: {e}") from e
+
+    if _local(root_elem.tag) == "rpc-reply":
+        raise ParseError(
+            "input is an <rpc-reply>; use parse_reply() (or `--from-xml`) "
+            "for full replies, not parse_fragment() (or `--from-fragment`)"
+        )
+
+    if module is None or root is None:
+        inferred_module, inferred_root = _infer_module_and_root(root_elem, loader)
+        module = module or inferred_module
+        root = root or inferred_root
+
+    schema = build_schema(loader, module, root)
+    data = _walk_container(schema, root_elem, loader)
+    if data_only:
+        return data
+    return {"module": module, "root": root, "data": data}
 
 
 # -- data-bearing replies -------------------------------------------
@@ -181,7 +231,7 @@ def _walk_container(node: SchemaNode, elem: ET.Element, loader: Loader) -> dict:
             result[name] = entries
         elif child_schema.kind == "leaf-list":
             result[name] = [
-                _coerce_value(child_schema, sib.text) for sib in siblings
+                _coerce_value(child_schema, sib.text, loader) for sib in siblings
             ]
         elif child_schema.is_leaf:
             if len(siblings) > 1:
@@ -189,7 +239,7 @@ def _walk_container(node: SchemaNode, elem: ET.Element, loader: Loader) -> dict:
                     f"leaf {name!r} appears {len(siblings)} times under "
                     f"{node.name!r}; a leaf is single-valued"
                 )
-            result[name] = _parse_leaf(child_schema, siblings[0])
+            result[name] = _parse_leaf(child_schema, siblings[0], loader)
         elif child_schema.kind == "container":
             if len(siblings) > 1:
                 raise ParseError(
@@ -211,7 +261,7 @@ def _walk_container(node: SchemaNode, elem: ET.Element, loader: Loader) -> dict:
     return result
 
 
-def _parse_leaf(node: SchemaNode, elem: ET.Element) -> Any:
+def _parse_leaf(node: SchemaNode, elem: ET.Element, loader: Loader) -> Any:
     """Parse a leaf element, preserving the delete/remove sentinel.
 
     A leaf carrying ``nc:operation="delete"`` (or ``remove``) with no text
@@ -223,16 +273,22 @@ def _parse_leaf(node: SchemaNode, elem: ET.Element) -> Any:
     op = _operation_of(elem)
     if op in ("delete", "remove") and (elem.text is None or not elem.text.strip()):
         return {OPERATION_KEY: op}
-    return _coerce_value(node, elem.text)
+    return _coerce_value(node, elem.text, loader)
 
 
-def _coerce_value(node: SchemaNode, text: str | None) -> Any:
+def _coerce_value(node: SchemaNode, text: str | None, loader: Loader) -> Any:
     """Convert a leaf's text to the JSON type matching the forward builder.
 
     Symmetric with :func:`xml_builder._to_str`: boolean <-> bool, ``empty``
     <-> True (presence is the value), everything else <-> string. identityref
     keeps its ``prefix:ident`` text verbatim -- the forward builder accepts
     both bare and prefixed identityref values.
+
+    Validation runs (non-blocking): any YANG type-constraint violation in
+    the device-sent text is emitted as a
+    :class:`~yang_xml_gen.validator.YangValidationWarning`. Parsing always
+    proceeds -- a bad value from the device is still surfaced to the caller
+    rather than silently dropped.
     """
     t = node.type
     # An empty-type leaf has no text; its presence in the XML *is* the
@@ -244,6 +300,10 @@ def _coerce_value(node: SchemaNode, text: str | None) -> Any:
         return None
     if t is None:
         return text
+    # Validate the raw device text against the leaf's YANG type. We pass the
+    # string (not the coerced Python value) because the validator feeds it
+    # to pyang's str_to_val, which parses from the string form.
+    emit_warnings(node, text, loader)
     if t.name == "boolean":
         if text in ("true", "1"):
             return True

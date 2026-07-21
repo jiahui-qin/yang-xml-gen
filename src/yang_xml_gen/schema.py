@@ -18,7 +18,7 @@ and rpc output are out of scope for now.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Iterable
+from typing import Any, Iterable
 
 from .loader import Loader
 
@@ -46,6 +46,12 @@ class TypeInfo:
     identity_base_module: str | None = None
     # For enumeration: the permitted enum names. Empty for other types.
     enums: tuple[str, ...] = ()
+    # The fully-resolved pyang TypeSpec (``i_type_spec``), used by the
+    # validator to check range/length/pattern/enum/identityref-derivation/
+    # decimal64-precision/union/bits constraints. ``None`` when the type
+    # failed to resolve (pyang leaves ``i_type_spec`` None in that case) or
+    # when this TypeInfo was synthesised without a pyang statement.
+    type_spec: Any = None
 
     @property
     def is_identityref(self) -> bool:
@@ -241,6 +247,11 @@ def _type_info(leaf_stmt) -> TypeInfo:
         return TypeInfo(name="string")
 
     name = t.arg
+    # ``i_type_spec`` is pyang's fully-resolved type spec (typedef chains
+    # collapsed, restrictions applied). It is None when the type failed to
+    # validate; we pass it through as-is so the validator can decide.
+    type_spec = getattr(t, "i_type_spec", None)
+
     if name == "identityref":
         base = t.search_one("base")
         base_mod = None
@@ -251,10 +262,11 @@ def _type_info(leaf_stmt) -> TypeInfo:
             base_id = getattr(base, "i_identity", None)
             if base_id is not None:
                 base_mod = base_id.i_module.arg
-        return TypeInfo(name="identityref", identity_base_module=base_mod)
+        return TypeInfo(name="identityref", identity_base_module=base_mod,
+                        type_spec=type_spec)
 
     if name == "enumeration":
         enums = tuple(e.arg for e in t.search("enum"))
-        return TypeInfo(name="enumeration", enums=enums)
+        return TypeInfo(name="enumeration", enums=enums, type_spec=type_spec)
 
-    return TypeInfo(name=name)
+    return TypeInfo(name=name, type_spec=type_spec)

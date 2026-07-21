@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<nc:rpc-reply xmlns:nc="urn:ietf:params:netconf:base:1.0" message-id="201">
+  <nc:data>
+    <toaster xmlns="urn:example:toaster">
+      <darkness>7</darkness>
+      <toast-type xmlns:toaster="urn:example:toaster">toaster:wheat-bread</toast-type>
+      <mode>defrost</mode>
+      <label>Kitchen counter</label>
+    </toaster>
+  </nc:data>
+</nc:rpc-reply>

@@ -1,0 +1,62 @@
+# Build configuration for yang-xml-gen.
+#
+# Backend: setuptools (still the most boring, well-supported choice for a
+# pure-Python src/-layout package). We deliberately do NOT bundle models/ --
+# the .yang files are large upstream artefacts the user fetches separately
+# (see models/README.md). After `pip install`, the loader refuses to run
+# without an explicit --models-dir / YANG_XML_GEN_MODELS_DIR so the absence
+# is loud rather than silent.
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yang-xml-gen"
+version = "0.7.0"
+description = "YANG-driven NETCONF XML generator and reverse parser"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "qinjh" }]
+keywords = ["yang", "netconf", "xml", "pyang", "ietf"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Telecommunications Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: System :: Networking",
+    "Typing :: Typed",
+]
+dependencies = [
+    "pyang>=2.5",
+    "PyYAML>=6.0",
+]
+
+[project.scripts]
+# Installs a `yang-xml-gen` console entry point -> yang_xml_gen.cli:main.
+yang-xml-gen = "yang_xml_gen.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/qinjh/yang-xml-gen"
+Repository = "https://github.com/qinjh/yang-xml-gen"
+
+[tool.setuptools]
+# src/ layout: package discovery rooted under src/.
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+# PEP 561 marker: downstream type-checkers read py.typed to know inline
+# annotations are present. No other data files ship (models/ excluded).
+yang_xml_gen = ["py.typed"]

@@ -1,0 +1,10 @@
+{
+  "module": "example-toaster",
+  "root": "make-toast",
+  "wrap": "rpc",
+  "message-id": 101,
+  "data": {
+    "toastDoneness": 8,
+    "toastType": "frozen-waffle"
+  }
+}

@@ -77,7 +77,24 @@ from .wrappers import (
     subtree_filter,
     xpath_filter,
 )
-from .xml_parser import ParseError, parse_reply
+from .xml_parser import ParseError, parse_fragment, parse_reply
+
+
+def _read_text(path: Path) -> str:
+    """Read a user-supplied text file, tolerating UTF-8, UTF-8-BOM, and UTF-16.
+
+    NETCONF/YAML/JSON inputs are nominally UTF-8, but Windows tools (Notepad,
+    PowerShell redirection) often save UTF-16 or UTF-8-with-BOM. We sniff the
+    BOM to pick the right codec instead of hard-coding utf-8 and crashing on a
+    stray 0xff byte. Output files we write ourselves stay UTF-8 (see the
+    ``write_text`` calls below).
+    """
+    data = path.read_bytes()
+    if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+        # UTF-16 LE/BE BOM: utf-16 detects endianness and strips the BOM.
+        return data.decode("utf-16")
+    # utf-8-sig accepts both plain UTF-8 and UTF-8-with-BOM (strips EF BB BF).
+    return data.decode("utf-8-sig")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -112,12 +129,21 @@ def main(argv: list[str] | None = None) -> int:
         help="parse `spec` as a <rpc-reply> XML file back into JSON spec-data",
     )
     p.add_argument(
+        "--from-fragment",
+        action="store_true",
+        help="parse `spec` as a bare data-tree fragment (no <rpc-reply> "
+             "envelope) back into JSON spec-data",
+    )
+    p.add_argument(
         "--data-only",
         action="store_true",
-        help="with --from-xml: emit only the `data` object, not the "
-             "{module, root, data} envelope",
+        help="with --from-xml/--from-fragment: emit only the `data` object, "
+             "not the {module, root, data} envelope",
     )
     args = p.parse_args(argv)
+
+    if args.from_xml and args.from_fragment:
+        p.error("--from-xml and --from-fragment are mutually exclusive")
 
     loader = Loader(args.models_dir)
 
@@ -132,10 +158,12 @@ def main(argv: list[str] | None = None) -> int:
         return _print_template(loader, args.template, include_state=args.include_state, output=args.output)
     if args.from_xml:
         return _parse_xml_reply(loader, args.spec, data_only=args.data_only, output=args.output)
+    if args.from_fragment:
+        return _parse_xml_fragment(loader, args.spec, data_only=args.data_only, output=args.output)
     if args.spec is None:
         p.error("a spec file is required (or use --list-modules / --roots / --template / --from-xml)")
 
-    spec = yaml.safe_load(args.spec.read_text(encoding="utf-8"))
+    spec = yaml.safe_load(_read_text(args.spec))
     if not isinstance(spec, dict):
         p.error("spec must be a YAML mapping with module/root/data keys")
 
@@ -284,9 +312,45 @@ def _parse_xml_reply(
     if spec_path is None:
         sys.stderr.write("--from-xml requires an input XML file\n")
         return 2
-    xml = spec_path.read_text(encoding="utf-8")
+    xml = _read_text(spec_path)
     try:
         result: Any = parse_reply(xml, loader, data_only=data_only)
+    except (ParseError, KeyError) as e:
+        sys.stderr.write(str(e) + "\n")
+        return 2
+    text = json.dumps(result, indent=2, ensure_ascii=False) + "\n"
+    if output:
+        output.write_text(text, encoding="utf-8")
+        print(f"wrote {output}", file=sys.stderr)
+    else:
+        sys.stdout.write(text)
+    return 0
+
+
+def _parse_xml_fragment(
+    loader: Loader,
+    spec_path: Path | None,
+    *,
+    data_only: bool,
+    output: Path | None,
+) -> int:
+    """Handle ``--from-fragment``: parse a bare data-tree XML fragment.
+
+    Unlike ``--from-xml`` (full ``<rpc-reply>``), the input is a single root
+    element such as ``<interfaces>...</interfaces>`` -- the kind of fragment
+    you get from an ``<edit-config>``'s ``<config>`` payload or a
+    subtree-filter reply with the envelope stripped. Module/root are inferred
+    from the root element's xmlns unless the caller supplies them (the CLI
+    does not expose explicit module/root flags; inference covers the common
+    case). ``--data-only`` toggles between the bare ``data`` object and the
+    ``{module, root, data}`` envelope.
+    """
+    if spec_path is None:
+        sys.stderr.write("--from-fragment requires an input XML file\n")
+        return 2
+    xml = _read_text(spec_path)
+    try:
+        result: Any = parse_fragment(xml, loader, data_only=data_only)
     except (ParseError, KeyError) as e:
         sys.stderr.write(str(e) + "\n")
         return 2

@@ -1,0 +1,10 @@
+{
+  "module": "example-toaster",
+  "root": "toaster",
+  "data": {
+    "darkness": "",
+    "toast-type": "",
+    "mode": "",
+    "label": ""
+  }
+}

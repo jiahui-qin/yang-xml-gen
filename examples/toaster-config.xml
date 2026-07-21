@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<nc:rpc xmlns:nc="urn:ietf:params:netconf:base:1.0" message-id="101">
+  <nc:edit-config nc:operation="merge">
+    <nc:target>
+      <nc:running />
+    </nc:target>
+    <nc:config>
+      <toaster xmlns="urn:example:toaster" nc:operation="merge">
+        <darkness>7</darkness>
+        <toast-type xmlns:toaster="urn:example:toaster">toaster:wheat-bread</toast-type>
+        <mode>defrost</mode>
+        <label>Kitchen counter</label>
+      </toaster>
+    </nc:config>
+  </nc:edit-config>
+</nc:rpc>

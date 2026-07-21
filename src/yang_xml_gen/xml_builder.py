@@ -23,12 +23,14 @@ Design notes (these are the things that are easy to get wrong):
 from __future__ import annotations
 
 import re
+import warnings
 from dataclasses import dataclass, field
 from typing import Any
 from xml.etree import ElementTree as ET
 
 from .loader import Loader
 from .schema import SchemaNode, build_schema
+from .validator import emit_warnings
 
 # Sentinel key in data dicts that turns into an `operation=` attribute.
 # Picked to be unlikely to collide with real YANG leaf names.
@@ -294,7 +296,15 @@ class _Builder:
         resolve the identity's defining module and emit a matching
         ``xmlns:<prefix>``. The prefix is derived from the module name for
         determinism.
+
+        Validation runs first (non-blocking): any YANG type-constraint
+        violation (range/length/pattern/enum/identityref-derivation/
+        decimal64-precision/union/bits) is emitted as a
+        :class:`~yang_xml_gen.validator.YangValidationWarning` via
+        :func:`warnings.warn`. Generation always proceeds; the device does
+        its own validation on edit-config.
         """
+        emit_warnings(node, value, self.loader)
         t = node.type
         if t is not None and t.is_identityref:
             return self._format_identityref(value)
