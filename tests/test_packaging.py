@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from yang_xml_gen.cli import main  # noqa: E402,F401  (importability check)
+from yang_xml_gen.rpc_worker import main as rpc_main  # noqa: E402,F401
 
 PYPROJECT = ROOT / "pyproject.toml"
 LICENSE = ROOT / "LICENSE"
@@ -69,6 +70,11 @@ class PyprojectTests(unittest.TestCase):
     def test_console_script_entry_point(self):
         scripts = self.data["project"]["scripts"]
         self.assertEqual(scripts["yang-xml-gen"], "yang_xml_gen.cli:main")
+        # The long-lived RPC worker entry point (used by external hosts like
+        # the netconfSub Node backend to embed us as a plugin).
+        self.assertEqual(
+            scripts["yang-xml-gen-rpc"], "yang_xml_gen.rpc_worker:main"
+        )
 
     def test_src_layout_package_discovery(self):
         # package-dir "" -> "src" is what makes `from yang_xml_gen import ...`
@@ -129,6 +135,10 @@ class ImportabilityTests(unittest.TestCase):
         # sure the symbol referenced by the entry point exists and is a
         # callable, so the entry point won't blow up at launch.
         self.assertTrue(callable(main))
+
+    def test_rpc_worker_main_is_callable(self):
+        # Same check for the `yang-xml-gen-rpc` entry point.
+        self.assertTrue(callable(rpc_main))
 
 
 if __name__ == "__main__":

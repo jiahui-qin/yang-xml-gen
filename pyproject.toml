@@ -44,6 +44,11 @@ dependencies = [
 [project.scripts]
 # Installs a `yang-xml-gen` console entry point -> yang_xml_gen.cli:main.
 yang-xml-gen = "yang_xml_gen.cli:main"
+# Long-lived JSON-RPC worker over stdin/stdout, for embedding as a plugin in
+# external processes (e.g. the netconfSub Node.js backend). Same models-dir
+# resolution as the CLI; the env var YANG_XML_GEN_MODELS_DIR is the usual
+# way for a host process to configure it without args.
+yang-xml-gen-rpc = "yang_xml_gen.rpc_worker:main"
 
 [project.urls]
 Homepage = "https://github.com/qinjh/yang-xml-gen"

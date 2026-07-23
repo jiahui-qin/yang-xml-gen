@@ -36,6 +36,7 @@ identityref prefixes, key ordering, and `nc:operation` for you.
 - [CLI reference](#cli-reference)
 - [Spec file format](#spec-file-format)
 - [Library API](#library-api)
+- [RPC worker (embedded mode)](#rpc-worker-embedded-mode)
 - [Value validation](#value-validation)
 - [Reverse parsing](#reverse-parsing)
 - [Read path: get / get-config](#read-path-get--get-config)
@@ -377,6 +378,85 @@ warnings.filterwarnings("error", category=YangValidationWarning)
 
 `YangValidationWarning` is a `UserWarning` subclass — filter on it to silence or
 escalate. See [Value validation](#value-validation).
+
+### RPC worker (`rpc_worker.py`) — embedded mode
+
+A long-lived JSON-RPC worker over stdin/stdout, designed to be embedded as a
+"plugin" by an external process (in practice the
+[netconfSub](https://github.com/jiahui-qin/netconfSub) Node.js backend). The
+host spawns this module **once** and keeps it alive for the whole session,
+sending one JSON request per line on stdin and reading one JSON response per
+line on stdout.
+
+Why a warm worker rather than invoking the CLI per call? `Loader()` parses and
+cross-validates *every* `.yang` in the models directory (124 files here) — a
+one-time cost of hundreds of ms to a few seconds. A per-call CLI invocation
+would re-pay that on every single request; a warm worker amortises it across
+the session, so individual `build` / `parse` calls stay in the millisecond
+range.
+
+**Launching** (the host normally does this via `child_process.spawn`):
+
+```bash
+# After `pip install -e .`, or from the repo root:
+python -m yang_xml_gen.rpc_worker
+# Optional: --models-dir /path/to/models (else YANG_XML_GEN_MODELS_DIR env, else bundled models/)
+```
+
+**Wire protocol:**
+
+1. On startup the worker constructs one `Loader` and emits a greeting line:
+   `{"ready": true, "models_dir": ..., "module_count": N}`
+   (or `{"ready": false, "error": {"type", "message"}}` if the models dir is
+   unusable — the host should surface a 503 with an install hint).
+2. Each request is a line: `{"id": <opaque>, "method": "...", "params": {...}}`.
+3. Each response is a line:
+   `{"id": <same>, "ok": true, "result": ..., "warnings": [...]}` or
+   `{"id": <same>, "ok": false, "error": {"type": "...", "message": "..."}}`.
+4. `{"method": "shutdown"}` (no id required) exits cleanly; EOF on stdin does
+   too.
+
+`warnings` captures `YangValidationWarning` records emitted during the call
+(YANG type-constraint violations are non-blocking, so a successful `result`
+can still carry warnings — the device is the final authority). Errors are
+framed, never tracebacks: the worker never crashes on a bad request.
+
+**Methods** (thin adapters over the public library functions — no generation
+logic lives here):
+
+| method | params | returns `result` |
+|---|---|---|
+| `list_modules` | — | `["module1", ...]` |
+| `roots` | `{module}` | `[{"name","kind"}, ...]` (`kind` includes `"rpc"`) |
+| `template` | `{module, root, include_state?}` | `{module, root, data}` skeleton |
+| `build` | `{module, root, data, wrap, operation?, target?, message_id?, filter?, filter_select?, with_defaults?}` | `{"xml": "<rpc>...</rpc>"}` |
+| `parse_reply` | `{xml, data_only?}` | parsed reply as dict |
+| `parse_fragment` | `{xml, module?, root?, data_only?}` | parsed fragment as dict |
+| `validate` | `{module, root, data, ...build params}` | `{}` (warnings only — runs a build to collect `YangValidationWarning`) |
+
+`wrap` is one of `bare` / `edit-config` / `rpc` / `get-config` / `get`. For
+the read path (`get-config` / `get`) set `filter` (subtree data, requires
+`module`+`root`) **or** `filter_select` (xpath string), not both; omit both
+for full retrieval. See [Read path: get / get-config](#read-path-get--get-config)
+for the filter semantics.
+
+A minimal end-to-end conversation from a host:
+
+```
+→ {"id":1,"method":"list_modules"}
+← {"id":1,"ok":true,"result":["example-toaster", ...],"warnings":[]}
+→ {"id":2,"method":"roots","params":{"module":"example-toaster"}}
+← {"id":2,"ok":true,"result":[{"name":"toaster","kind":"container"}],"warnings":[]}
+→ {"id":3,"method":"build","params":{"module":"example-toaster","root":"toaster","data":{"toaster":{"darkness":3}},"wrap":"edit-config","target":"running"}}
+← {"id":3,"ok":true,"result":{"xml":"<nc:rpc ...>...</nc:rpc>"},"warnings":[]}
+→ {"method":"shutdown"}
+```
+
+> **Note on prefixes:** the generated `<rpc>` uses the NETCONF base namespace
+> with an `nc:` prefix (`<nc:rpc xmlns:nc="urn:ietf:params:netconf:base:1.0">`).
+> Hosts that re-parse the XML to forward it to a NETCONF client should strip
+> this prefix (or handle namespaced roots) before handing the operation object
+> to a library that adds its own `xmlns`.
 
 ## Value validation
 
